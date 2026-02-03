@@ -12,10 +12,10 @@ public class Board {
     
 
     //variables for the baord
-    private int board_width;
-    private int board_height;
-    private int note_width;
-    private int note_height;
+    public int board_width;  // Public so BBoardServer an access
+    public int board_height;
+    public int note_width;
+    public int note_height;
     //hardcode the allowed colours
     private List<String> AcceptColours;
     
@@ -25,9 +25,9 @@ public class Board {
         this.board_height = board_height;
         this.note_width = note_width;
         this.note_height = note_height;
-        this.AcceptColours = new ArrayList<>(AcceptColours);
-        this.notes = new ArrayList<>();
-        this.pins = new ArrayList<>();
+        this.AcceptColours = new Vector<>(AcceptColours);
+        this.notes = new Vector<>();
+        this.pins = new Vector<>();
 
     }
 
@@ -98,12 +98,13 @@ public class Board {
 
     //add note
     //use a bool to tell the HttpRequest.java file if the note meets the criteria to be created, else bad request
-    public void addNote(int x, int y, String color, String myText){
+    public synchronized void addNote(int x, int y, String color, String myText){
 
         //check that the note size is > 1 and that it also fits on the board, throw exception if out of bounds
+        // Assure error codes match RFC
         if(x < 0 || y < 0 || x + note_width > board_width || y + note_height > board_height){
             
-            throw new IllegalArgumentException("NOTE OUT OF BOUNDS");
+            throw new IllegalArgumentException("OUT_OF_BOUNDS");
         }
 
         //check if there is overlap on the notes
@@ -111,13 +112,13 @@ public class Board {
             Note tempNote = notes.get(i);
 
             if(tempNote.x == x && tempNote.y == y){
-                throw new IllegalArgumentException("COMPLETE OVERLAP OF NOTES");
+                throw new IllegalArgumentException("COMPLETE_OVERLAP");
             }
         }
 
         //check for appropiate colour
         if(!AcceptColours.contains(color.toLowerCase())){
-            throw new IllegalArgumentException("THIS COLOR IS NOT SUPPORTED");
+            throw new IllegalArgumentException("COLOR_NOT_SUPPORTED");
         }
 
         notes.add(new Note(x, y, color.toLowerCase(), myText));
@@ -125,8 +126,8 @@ public class Board {
     }
 
     //get note (return an ArrayList of notes)
-    public List<Note> getNotes(){
-        return new ArrayList<>(notes);
+    public synchronized List<Note> getNotes(){
+        return new Vector<>(notes);
     }
 
     //add pin
@@ -143,7 +144,7 @@ public class Board {
             }
         }
         if(!returnV){
-            throw new IllegalArgumentException("NO NOTE FOUND");
+            throw new IllegalArgumentException("NO_NOTE_AT_COORDINATE");
         }
         pins.add(new Pin(x, y));
 
@@ -170,7 +171,7 @@ public class Board {
         }
 
         if(!tempBool){
-            throw new IllegalArgumentException("UNABLE TO FIND PIN");
+            throw new IllegalArgumentException("PIN_NOT_FOUND");
         }
 
         //recount the pins up
@@ -190,6 +191,7 @@ public class Board {
     //shake
 
     //clear
+    
 }
 
 
