@@ -17,14 +17,15 @@ public class Board {
     private int note_width;
     private int note_height;
     //hardcode the allowed colours
-    private static final List<String> AcceptColours = Arrays.asList("red", "orange", "yellow", "green", "blue", "purple");
+    private List<String> AcceptColours;
     
     //Board constructor
-    public Board(int board_width, int board_height, int note_width, int note_height){
+    public Board(int board_width, int board_height, int note_width, int note_height, List<String> AcceptColours){
         this.board_width = board_width;
         this.board_height = board_height;
         this.note_width = note_width;
         this.note_height = note_height;
+        this.AcceptColours = new ArrayList<>(AcceptColours);
         this.notes = new ArrayList<>();
         this.pins = new ArrayList<>();
 
@@ -38,45 +39,71 @@ public class Board {
         private int x, y;
         private String color;
         private String myText;
-        private boolean isPinned;
+        private int pinNum;
         //note constructor
         Note(int x, int y, String color, String myText){
-
-            if(!AcceptColours.contains(color.toLowerCase())){
-                throw new IllegalArgumentException("Invalid color, please use one of the follwoing: red, orange, yellow, green, blue, purple");
-            }
 
             this.x = x;
             this.y = y;
             //if the user messes with caps, program can continue
-            this.color = color.toLowerCase();
+            this.color = color;
             this.myText = myText;
             //set as not pinned by default
-            this.isPinned = false;
-    
+            this.pinNum = 0;
+        }
+
+        public int getX(){
+            return x;
+        }
+
+        public int getY(){
+            return y;
+        }
+
+        public String getColor(){
+            return color;
+        }
+        public String getText(){
+            return myText;
+        }
+
+        public boolean isPinned(){
+            return pinNum > 0;
+        }
+
+        boolean contains(int TX, int TY){
+            boolean returnV = TX >= x && TX < x + note_width && TY >= y && TY < y + note_height;
+
+            return returnV;
         }
     }
 
     //pin class
     public class Pin{
-        int x, y;
+        private int x, y;
 
         Pin(int x, int y){
             this.x = x;
             this.y = y;
         }
+
+        public int getX(){
+            return x;
+        }
+
+        public int getY(){
+            return y;
+        }
     }
 
     //add note
     //use a bool to tell the HttpRequest.java file if the note meets the criteria to be created, else bad request
-    public boolean addNote(int x, int y, String color, String myText){
-        boolean returnV = true;
+    public void addNote(int x, int y, String color, String myText){
 
-        //check that the note size is > 1 and that it also fits on the board
+        //check that the note size is > 1 and that it also fits on the board, throw exception if out of bounds
         if(x < 0 || y < 0 || x + note_width > board_width || y + note_height > board_height){
             
-            returnV = false;
-            return returnV;
+            throw new IllegalArgumentException("NOTE OUT OF BOUNDS");
         }
 
         //check if there is overlap on the notes
@@ -84,14 +111,16 @@ public class Board {
             Note tempNote = notes.get(i);
 
             if(tempNote.x == x && tempNote.y == y){
-                returnV = false;
-                return returnV;
+                throw new IllegalArgumentException("COMPLETE OVERLAP OF NOTES");
             }
         }
 
-        notes.add(new Note(x, y, color, myText));
+        //check for appropiate colour
+        if(!AcceptColours.contains(color.toLowerCase())){
+            throw new IllegalArgumentException("THIS COLOR IS NOT SUPPORTED");
+        }
 
-        return returnV;
+        notes.add(new Note(x, y, color.toLowerCase(), myText));
 
     }
 
@@ -101,28 +130,62 @@ public class Board {
     }
 
     //add pin
-    public boolean addPin(int x, int y){
+    public void addPin(int x, int y){
         boolean returnV = false;
         
         for(int i = 0; i < notes.size(); i++){
             Note tempNote = notes.get(i);
 
-            if(x >= tempNote.x && x < tempNote.x + note_width && y >= tempNote.y && y < tempNote.y + note_height){
-                tempNote.isPinned = true;
-                pins.add(new Pin(x, y));
-
+            if(tempNote.contains(x, y)){
+                tempNote.pinNum ++;
                 returnV = true;
-                return returnV;
+
             }
         }
+        if(!returnV){
+            throw new IllegalArgumentException("NO NOTE FOUND");
+        }
+        pins.add(new Pin(x, y));
 
-        return returnV;
     }
 
 
     //get pin
+    public List<Pin> getPins(){
+        return new ArrayList<>(pins);
+    }
 
     //remove pin
+    public void removePin(int x, int y){
+        boolean tempBool = false;
+
+        for(int i = 0; i < pins.size(); i++){
+            Pin tempPin = pins.get(i);
+            if(tempPin.x == x && tempPin.y == y){
+                pins.remove(i);
+
+                tempBool = true;
+                break;
+            }
+        }
+
+        if(!tempBool){
+            throw new IllegalArgumentException("UNABLE TO FIND PIN");
+        }
+
+        //recount the pins up
+        for(int i = 0; i < notes.size(); i++){
+            notes.get(i).pinNum = 0;
+
+            for(int j = 0; j < pins.size(); j++){
+                Pin tempP = pins.get(j);
+
+                if(notes.get(i).contains(tempP.x, tempP.y)){
+                    notes.get(i).pinNum++;
+                }
+            }
+        }
+    }
 
     //shake
 
