@@ -9,8 +9,6 @@ public class Board {
     //Board.Pin
     private List<Pin> pins;
 
-    
-
     //variables for the baord
     private int board_width;
     private int board_height;
@@ -103,7 +101,7 @@ public class Board {
         //check that the note size is > 1 and that it also fits on the board, throw exception if out of bounds
         if(x < 0 || y < 0 || x + note_width > board_width || y + note_height > board_height){
             
-            throw new IllegalArgumentException("NOTE OUT OF BOUNDS");
+            throw new IllegalArgumentException("ERROR OUT_OF_BOUNDS");
         }
 
         //check if there is overlap on the notes
@@ -111,13 +109,13 @@ public class Board {
             Note tempNote = notes.get(i);
 
             if(tempNote.x == x && tempNote.y == y){
-                throw new IllegalArgumentException("COMPLETE OVERLAP OF NOTES");
+                throw new IllegalArgumentException("ERROR COMPLETE_OVERLAP");
             }
         }
 
-        //check for appropiate colour
+        //check for appropiate colour - NOTE: believe I would use the error as seen in section 15
         if(!AcceptColours.contains(color.toLowerCase())){
-            throw new IllegalArgumentException("THIS COLOR IS NOT SUPPORTED");
+            throw new IllegalArgumentException("ERROR COLOR_NOT_SUPPORTED");
         }
 
         notes.add(new Note(x, y, color.toLowerCase(), myText));
@@ -143,7 +141,7 @@ public class Board {
             }
         }
         if(!returnV){
-            throw new IllegalArgumentException("NO NOTE FOUND");
+            throw new IllegalArgumentException("ERROR NO_NOTE_AT_COORDINATE");
         }
         pins.add(new Pin(x, y));
 
@@ -155,7 +153,7 @@ public class Board {
         return new ArrayList<>(pins);
     }
 
-    //remove pin
+    //remove pin/ unpin
     public void removePin(int x, int y){
         boolean tempBool = false;
 
@@ -170,7 +168,7 @@ public class Board {
         }
 
         if(!tempBool){
-            throw new IllegalArgumentException("UNABLE TO FIND PIN");
+            throw new IllegalArgumentException("ERROR PIN_NOT_FOUND");
         }
 
         //recount the pins up
@@ -188,9 +186,56 @@ public class Board {
     }
 
     //shake
+    public void shake(){
+        for(int i = notes.size() - 1; i >= 0; i--){
+            if(!notes.get(i).isPinned()){
+                notes.remove(i);
+            }
+        }
+
+        for(int i = pins.size() - 1; i >= 0; i--){
+            Pin myPin = pins.get(i);
+            boolean isInside = false;
+
+            for(int j = 0; j < notes.size(); j++){
+                if(notes.get(j).contains(myPin.x, myPin.y)){
+                    isInside = true;
+                    break;
+                }
+            }
+
+            if(!isInside){
+                pins.remove(i);
+            }
+        }
+    }
 
     //clear
+    public void clear(){
+        notes.clear();
+        pins.clear();
+    }
+
+    //some getters to be used in CMDProcess
+
+    public int getBoardWidth(){
+        return board_width;
+    }
+
+    public int getBoardHeight(){
+        return board_height;
+    }
+
+    public int getNoteWidth(){
+        return note_width;
+    }
+
+    public int getNoteHeight(){
+        return note_height;
+    }
+
+    public List<String> getAcceptColours(){
+        return new ArrayList<>(AcceptColours);
+    }
 }
-
-
 

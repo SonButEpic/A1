@@ -7,6 +7,8 @@ public class WebServer{
     //example states it uses volatile for graceful shutdown
     public static volatile boolean run = true;
 
+    private static Board myBoard;
+
     //believe that argv is used to store command line arguments passed to the program
     public static void main(String argv[]) throws Exception{
         
@@ -15,7 +17,7 @@ public class WebServer{
             //used to display an error message as seen in the code sample provided
             //serves as an instruction to the user on the correct way to use the command
             //match format and order to the requirement doc
-            System.err.println("Usage: java WebServer <port> <board_width> <board_height> <note_width> <note_height <color1>  ... <colorN");
+            System.err.println("Usage: java WebServer <port> <board_width> <board_height> <note_width> <note_height <color1>  ... <colorN>");
             System.exit(1);
         }
 
@@ -68,7 +70,7 @@ public class WebServer{
 
                     String myIP = clientConnect.getInetAddress().getHostAddress();
 
-                    HttpRequest myRequest = new HttpRequest(clientConnect, myIP, myBoard);
+                    CMDProcess myRequest = new CMDProcess(clientConnect, myIP, myBoard);
 
                     Thread thread = new Thread(myRequest);
 
