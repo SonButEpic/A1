@@ -8,8 +8,11 @@ public class CMDProcess implements Runnable{
     private Board myBoard;
     private String clientIP;
 
+    //CMDProcess constructor
     public CMDProcess(Socket mySocketT, Board myBoardT, String clientIP){
+        //socket used for client connection
         this.mySocket = mySocketT;
+        //Board object
         this.myBoard = myBoardT;
         this.clientIP = clientIP;
     }
@@ -55,69 +58,154 @@ public class CMDProcess implements Runnable{
 
     private String processCMD(String pl) {
         if (pl == null || pl.trim().isEmpty()) {
-            return "ERROR EMPTY_COMMAND";
+            return "ERROR INVALID_FORMAT";
         }
         
         List<String> tokens = new ArrayList<>(Arrays.asList(pl.trim().split("\\s+")));
         String cmd = tokens.get(0).toUpperCase();
 
         try{
-            if(cmd.equals("ADD")){
+            if(cmd.equals("POST")){
                 if (tokens.size() < 5){
-                    return "ERROR INVALID_ADD_FORMAT";
+                    return "ERROR INVALID_FORMAT Missing parameters or invalid data types";
                 }
 
-                int x = Integer.parseInt(tokens.get(1));
-                int y = Integer.parseInt(tokens.get(2));
+                int x, y;
+                try{
+
+                    x = Integer.parseInt(tokens.get(1));
+                    y = Integer.parseInt(tokens.get(2));
+
+                }
+                catch(NumberFormatException e){
+                    return "ERROR INVALID_FORMAT Command parameters must be integers";
+                }
 
                 String color = tokens.get(3).toLowerCase();
                 String text = String.join(" ", tokens.subList(4, tokens.size()));
 
                 myBoard.addNote(x, y, color, text);
-                return "OK NOTE_ADDED";
+                return "OK NOTE_POSTED";
             }
             else if(cmd.equals("PIN")){
 
                 if(tokens.size() != 3){
-                    return "ERROR INVALID_PIN_FORMAT";
+                    return "ERROR INVALID_FORMAT Command is missing parameters or using invalid data types.";
                 }
 
-                int px = Integer.parseInt(tokens.get(1));
-                int py = Integer.parseInt(tokens.get(2));
+                int x, y;
 
-                myBoard.addPin(px, py);
+                try{
+
+                    x = Integer.parseInt(tokens.get(1));
+                    y = Integer.parseInt(tokens.get(2));
+
+                }
+                catch(NumberFormatException e){
+                    return "ERROR INVALID_FORMAT Command parameters must be integers";
+
+                }
+
+                myBoard.addPin(x, y);
                 return "OK PIN_ADDED";
 
             }
             else if(cmd.equals("UNPIN")){
                 if (tokens.size() != 3){
-                    return "ERROR INVALID_UNPIN_FORMAT";
+                    return "ERROR INVALID_FORMAT Command is missing parameters or using invalid data types.";
                 }
 
-                int px = Integer.parseInt(tokens.get(1));
-                int py = Integer.parseInt(tokens.get(2));
+                int x,y;
 
-                myBoard.removePin(px, py);
+                try{                
+
+                    x = Integer.parseInt(tokens.get(1));
+                    y = Integer.parseInt(tokens.get(2));
+
+                }
+                catch(NumberFormatException e){
+                    return "ERROR INVALID_FORMAT Command parameters must be integers";
+                }
+
+                myBoard.removePin(x, y);
                 return "OK PIN_REMOVED";
 
             }
             else if(cmd.equals("SHAKE")){
-                myBoard.shake();
+                if(tokens.size() != 1){
+                    return "ERROR INVALID_FORMAT SHAKE command takes no parameters";
+                }
 
-                return "OK BOARD_SHAKEN";
+                myBoard.shake();
+                return "OK SHAKE_COMPLETE";
 
             }
             else if(cmd.equals("CLEAR")){
+                
+                if(tokens.size() != 1){
+                    return "ERROR INVALID_FORMAT CLEAR command takes no parameters";
+                }
+                
                 myBoard.clear();
                 return "OK BOARD_CLEARED";
 
             }
             else if(cmd.equals("GET")){
                 if (tokens.size() == 1){
-                    
+                    List<Board.Note> notes = myBoard.getNotes();
+
+                    StringBuilder sb = new StringBuilder();
+
+                    sb.append("OK ").append(notes.size()).append("\n");
+
+                    for(int i = 0; i < notes.size(); i++){
+                        Board.Note n = notes.get(i);
+
+                        sb.append("NOTE ").append(n.getX()).append(" ").append(n.getY()).append(" ").append(n.getColor()).append(" ").append(n.getText()).append(" PINNED=").append(n.isPinned() ? "true" : "false").append("\n");
+
+                    }
+                    return sb.toString().trim();
+                }
+                else if(tokens.get(1).equalsIgnoreCase("PINS")){
+                    List<Board.Pin> pins = myBoard.getPins();
+
+                    StringBuilder sb = new StringBuilder();
+
+                    sb.append("OK ").append(pins.size()).append("\n");
+
+                    for(int i = 0; i < pins.size(); i++){
+                        Board.Pin p = pins.get(i);
+
+                        sb.append("PIN ").append(p.getX()).append(" ").append(p.getY()).append("\n");
+                    }
+                    return sb.toString().trim();
+                }
+                else{
+                    return "ERROR INVALID_FORMAT GET command unknown filter";
                 }
 
             }
+            else if(cmd.equals("DISCONNECT")){
+                if(tokens.size() != 1){
+                    return "ERROR INVALID_FORMAT DISCONNECT command takes no parameters";
+                }
+                try{
+                    mySocket.close();
+                }
+                catch(IOException e){}
+                return null;
+            }
+            else{
+                return "ERROR UNKNOWN_COMMAND";
+
+            }
         }
-    
+        catch(IllegalArgumentException e){
+            return e.getMessage();
+        }
+        catch(Exception e){
+            return "ERROR " + e.getMessage();
+        }
+
+    }
 }

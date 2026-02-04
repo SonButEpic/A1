@@ -24,21 +24,22 @@ public class WebServer{
         //initalize a default port
         int port = 1738;
 
-        if(argv.length > 6){
-            try{
-                port = Integer.parseInt(argv[0]);
 
-                if(port < 1 || port > 65535){
-                    System.err.println("Error: Port must be between 1 and 65535. Using default port 1738 instead.");
-                        port = 1738;
+        //parse port #
+        try{
+            port = Integer.parseInt(argv[0]);
 
-                }
-            }
-            catch(NumberFormatException e){
-                System.err.println("Invalid port number. using default port number 1738.");
-                port = 1738;
+            if(port < 1 || port > 65535){
+                System.err.println("Error: Port must be between 1 and 65535. Using default port 1738 instead.");
+                    port = 1738;
+
             }
         }
+        catch(NumberFormatException e){
+            System.err.println("Invalid port number. using default port number 1738.");
+            port = 1738;
+        }
+        
         //parse the commmand line into ints for the server
         int board_width = Integer.parseInt(argv[1]);
         int board_height = Integer.parseInt(argv[2]);
@@ -63,6 +64,7 @@ public class WebServer{
             //create the server socket
             mySocket = new ServerSocket(port);
 
+            //while running accept any new clients
             while(run){
 
                 try{
@@ -70,7 +72,7 @@ public class WebServer{
 
                     String myIP = clientConnect.getInetAddress().getHostAddress();
 
-                    CMDProcess myRequest = new CMDProcess(clientConnect, myIP, myBoard);
+                    CMDProcess myRequest = new CMDProcess(clientConnect, myBoard, myIP);
 
                     Thread thread = new Thread(myRequest);
 

@@ -69,6 +69,7 @@ public class Board {
             return pinNum > 0;
         }
 
+        //used to see if a specific coordinate is inside of this note
         boolean contains(int TX, int TY){
             boolean returnV = TX >= x && TX < x + note_width && TY >= y && TY < y + note_height;
 
@@ -94,9 +95,8 @@ public class Board {
         }
     }
 
-    //add note
-    //use a bool to tell the HttpRequest.java file if the note meets the criteria to be created, else bad request
-    public void addNote(int x, int y, String color, String myText){
+    //add note and the necessairy checks that accompany it
+    public synchronized void addNote(int x, int y, String color, String myText){
 
         //check that the note size is > 1 and that it also fits on the board, throw exception if out of bounds
         if(x < 0 || y < 0 || x + note_width > board_width || y + note_height > board_height){
@@ -123,12 +123,12 @@ public class Board {
     }
 
     //get note (return an ArrayList of notes)
-    public List<Note> getNotes(){
+    public synchronized List<Note> getNotes(){
         return new ArrayList<>(notes);
     }
 
-    //add pin
-    public void addPin(int x, int y){
+    //add pin at specified coordinates, error if no such note
+    public synchronized void addPin(int x, int y){
         boolean returnV = false;
         
         for(int i = 0; i < notes.size(); i++){
@@ -149,12 +149,12 @@ public class Board {
 
 
     //get pin
-    public List<Pin> getPins(){
+    public synchronized List<Pin> getPins(){
         return new ArrayList<>(pins);
     }
 
     //remove pin/ unpin
-    public void removePin(int x, int y){
+    public synchronized void removePin(int x, int y){
         boolean tempBool = false;
 
         for(int i = 0; i < pins.size(); i++){
@@ -185,8 +185,8 @@ public class Board {
         }
     }
 
-    //shake
-    public void shake(){
+    //shake - removes all notes that are currently not pinned
+    public synchronized void shake(){
         for(int i = notes.size() - 1; i >= 0; i--){
             if(!notes.get(i).isPinned()){
                 notes.remove(i);
@@ -211,12 +211,12 @@ public class Board {
     }
 
     //clear
-    public void clear(){
+    public synchronized void clear(){
         notes.clear();
         pins.clear();
     }
 
-    //some getters to be used in CMDProcess
+    //some getters to be used in CMDProcess.java
 
     public int getBoardWidth(){
         return board_width;
