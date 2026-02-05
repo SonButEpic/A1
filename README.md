@@ -36,8 +36,8 @@ java Client
 >[!IMPORTANT]
 >***Note: The client is pre-configured to connect to `localhost` on port `8888`.***
 ------------------------------
-## Custom Network Protocol (RFC)
-# The system communicates using a custom text-based protocol
+# Custom Network Protocol (RFC)
+## The system communicates using a custom text-based protocol
 `POST x y color msg`: Places a new note at (x, y) if coordinates are valid and there is no overlap.
 `GET`: Retrieves all notes that are currently on the board, and their pinned status.
 `PIN x y`: Pins and note that contains the (x, y) coordinate, protecting it from `SHAKE`.
@@ -47,7 +47,6 @@ java Client
 `DISCONNECT`: Terminates the client session and closes the socket
 ------------------------------
 ## System Architecture
-#
 * **WebServer.java**: The entry point that listens for incoming connections and creates `CMDProcess` threads.
 * **Board.java**: Handles logic for overlaps, boundary checks, thread-safe note management.
 * **Client.java**: Handles socket connection and background listener thread to keep GUI updated.
