@@ -23,16 +23,20 @@ public class Client {
                 
                 int boardWidth = Integer.parseInt(parts[1]);
                 int boardHeight = Integer.parseInt(parts[2]);
-                int colorIndexStart = 7; 
-                
+
+                int noteWidth = Integer.parseInt(parts[4]);
+                int noteHeight = Integer.parseInt(parts[5]);
+
+                int colorIndexStart = 7; // Colors start after the COLORS keyword
                 String[] colors = new String[parts.length - colorIndexStart];
                 System.arraycopy(parts, colorIndexStart, colors, 0, colors.length);
 
                 System.out.println("Board configured: " + boardWidth + "x" + boardHeight);
+                System.out.println("Note size: " + noteWidth + "x" + noteHeight);
 
                 // Launch GUI on the Event Dispatch Thread
                 SwingUtilities.invokeLater(() -> {
-                    ClientGUI gui = new ClientGUI(out, boardWidth, boardHeight, colors);
+                    ClientGUI gui = new ClientGUI(out, boardWidth, boardHeight, noteWidth, noteHeight, colors);
 
                     // Start the background listener thread
                     new Thread(() -> {
