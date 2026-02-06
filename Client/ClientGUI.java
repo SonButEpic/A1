@@ -28,9 +28,11 @@ public class ClientGUI extends JFrame{
         this.boardHeight = height;
         this.noteWidth = noteWidth;
         this.noteHeight = noteHeight;
-        this.noteHeight = noteWidth; 
+        //**CHANGED FROM "this.noteHeight = noteWidth;" TO "this.noteHeight = noteHeight;"**
+        this.noteHeight = noteHeight; 
 
-        refreshTimer = new Timer(500, e -> sendCommand("GET"));
+        //**CHANGED FROM "500" TO "1500" TO SLOW DOWN GETS TO MANUALLY SHOW GET COMMAND**
+        refreshTimer = new Timer(1500, e -> sendCommand("GET"));
         refreshTimer.start();
 
         setTitle("Post Board");

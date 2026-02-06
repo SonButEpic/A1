@@ -5,7 +5,22 @@ import javax.swing.SwingUtilities;
 public class Client {
     public static void main(String[] args) {
         String serverAddress = "localhost";
-        int port = 8888; 
+        //**CHANGED DEFAULT PORT FROM 8888 TO 1738 TO MATCH SERVER DEFAULT
+        int port = 1738; 
+
+        if (args.length >= 1) {
+            serverAddress = args[0];
+        }
+
+        if (args.length >= 2) {
+            try {
+                port = Integer.parseInt(args[1]);
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid port — using default 1738");
+            }
+        }
+
+        System.out.println("Connecting to " + serverAddress + ":" + port);
 
         try {
             Socket socket = new Socket(serverAddress, port);
