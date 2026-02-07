@@ -26,13 +26,22 @@ javac *.java
 The server requires some specific command line arguments to initialize the board environment: `java WebServer <port> <board_width> <board_height> <note_height> <color1> <color2 ...`
 # Example:
 ```
-java WebServer 8888 800 600 100 80 yellow blue white
+cd ../A1/Server> java WebServer 1738 800 600 100 80 yellow orange blue
 ```
 # Running the Client
 Open a new terminal and run:
 ```
-java Client
+cd ../A1/Client> java Client
 ```
+In the client, connect to the server using the `localhost` ip and the port: `1738`.
+Enter the coordinates or click where you'd like to place your note.
+Modify the color and message of the note, and press `POST`.
+
+Pinned notes will persist through a `SHAKE`.
+`CLEAR` will empty the board of all notes.
+`REFRESH` updates the board with the most recent state.
+`DISCONNECT` closes the client.
+
 >[!IMPORTANT]
 >***Note: The client is pre-configured to connect to `localhost` on port `8888`.***
 ------------------------------

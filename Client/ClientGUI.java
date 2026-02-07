@@ -1,7 +1,7 @@
 import java.awt.*;
 import java.io.*;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import javax.swing.*;
 
 public class ClientGUI extends JFrame{
@@ -14,119 +14,172 @@ public class ClientGUI extends JFrame{
     private DrawingPanel boardPanel;
     private JTextArea logArea;
 
-    private List<ClientNote> notes = new ArrayList<>();
+    private List<ClientNote> notes = new CopyOnWriteArrayList<>();
     private Timer refreshTimer;
 
     // Input fields
     private JTextField xField, yField, msgField;
     private JComboBox<String> colorBox;
 
+    private JTextField ipInput, portInput;
+
     public ClientGUI(PrintWriter out, int width, int height, int noteWidth, int noteHeight, String[] colors){
+        try {
+        UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+    } catch (Exception e) {
+
+        }
         // Initialize instance variables
         this.out = out;
         this.boardWidth = width;
         this.boardHeight = height;
         this.noteWidth = noteWidth;
         this.noteHeight = noteHeight;
-        //**CHANGED FROM "this.noteHeight = noteWidth;" TO "this.noteHeight = noteHeight;"**
-        this.noteHeight = noteHeight; 
-
-        //**CHANGED FROM "500" TO "1500" TO SLOW DOWN GETS TO MANUALLY SHOW GET COMMAND**
+        
+        // Refresh delay of 1.5 seconds to balance responsiveness and server load. Can adjust as needed.
         refreshTimer = new Timer(1500, e -> sendCommand("GET"));
-        refreshTimer.start();
-
+        if (this.out != null){
+            refreshTimer.start();
+        }
         setTitle("Post Board");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
         // The board
+        JPanel topContainer = new JPanel();
+        topContainer.setLayout(new BoxLayout(topContainer, BoxLayout.Y_AXIS));
+
+        JPanel connPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        ipInput = new JTextField("localhost", 10);
+        portInput = new JTextField("1738", 5);
+        JButton connectBtn = new JButton("Connect");
+        connPanel.add(new JLabel("Server IP:"));
+        connPanel.add(ipInput);
+        connPanel.add(new JLabel("Port:"));
+        connPanel.add(portInput);
+        connPanel.add(connectBtn);
+
+        connectBtn.addActionListener(e -> {
+            Client.startConnection(ipInput.getText(), Integer.parseInt(portInput.getText()), this);
+        });
+
+        JPanel actionBtnPanel = setupActionButtons();
+        topContainer.add(connPanel);
+        topContainer.add(actionBtnPanel);
+        add(topContainer, BorderLayout.NORTH);
+
         boardPanel = new DrawingPanel();
         boardPanel.setPreferredSize(new Dimension(boardWidth, boardHeight));
-        boardPanel.setBackground(new Color(230,230,230));
-        add(boardPanel, BorderLayout.CENTER);
+        boardPanel.setBackground(new Color(230, 230, 230));
+        add(new JScrollPane(boardPanel), BorderLayout.CENTER);
 
         boardPanel.addMouseListener(new java.awt.event.MouseAdapter(){
             @Override
-            public void mouseClicked(java.awt.event.MouseEvent evt){
-                // Get coordinates
-                int clickX = evt.getX();
-                int clickY = evt.getY();
-
-                // Update teh text fields so user can see what coordinates are selected
-                xField.setText(String.valueOf(clickX));
-                yField.setText(String.valueOf(clickY));
+            public void mouseClicked(java.awt.event.MouseEvent e){
+                xField.setText(String.valueOf(e.getX()));
+                yField.setText(String.valueOf(e.getY()));
             }
         });
 
-
-        // Controls
-        JPanel controlPanel = setupControls(colors);
-        add(controlPanel, BorderLayout.SOUTH);
-
-        // Server Log
-        logArea = new JTextArea(20, 30);
+        // Note details & collapsible log
+        logArea = new JTextArea(20, 25);
         logArea.setEditable(false);
-        add(new JScrollPane(logArea), BorderLayout.EAST);
+        logArea.setLineWrap(true);
+        logArea.setWrapStyleWord(true);
+        JScrollPane logScroll = new JScrollPane(logArea);
+        logScroll.setBorder(BorderFactory.createTitledBorder("Server Log"));
+        logScroll.setMinimumSize(new Dimension(200, 0));
+        add(logScroll, BorderLayout.EAST);
 
-        pack(); // Sets window size to fit components
+        add(setupNoteInputs(colors), BorderLayout.SOUTH);
+
+        pack();
         setVisible(true);
+
+    }
+    // Provide connection after pressing connect button
+    public void setOut(PrintWriter out) {
+        this.out = out;
+        if (this.out != null) {
+            refreshTimer.start();
+        }
+        log("Connected successfully. Board sync started.");
     }
 
-    private JPanel setupControls(String[] colors){
-        JPanel panel = new JPanel();
-        panel.setLayout(new GridLayout(2, 1));
+    // Update dimensions based on sevrer handshake
+    public void updateBoardConfig(int width, int height, int noteWidth, int noteHeight, String[] colors){
+        this.boardWidth = width;
+        this.boardHeight = height;
+        this.noteWidth = noteWidth;
+        this.noteHeight = noteHeight;
 
-        // Row 1 is inputs
-        JPanel inputPanel = new JPanel();
-        xField = new JTextField("0", 3);
-        yField = new JTextField("0", 3);
-        colorBox = new JComboBox<>(colors);
-        msgField = new JTextField("Hello World", 15);
+        boardPanel.setPreferredSize(new Dimension(boardWidth, boardHeight));
+        colorBox.setModel(new DefaultComboBoxModel<>(colors));
 
-        inputPanel.add(new JLabel("X:"));
-        inputPanel.add(xField);
-        inputPanel.add(new JLabel("Y:"));
-        inputPanel.add(yField);
-        inputPanel.add(new JLabel("Color:"));
-        inputPanel.add(colorBox);
-        inputPanel.add(new JLabel("Message:"));
-        inputPanel.add(msgField);
+        // Refresh window layout
+        this.pack();
+        boardPanel.revalidate();
+        boardPanel.repaint();
 
-        // Row 2 is buttons
-        JPanel btnPanel = new JPanel();
-        JButton btnPost = new JButton("POST");
-        JButton btnGet = new JButton("GET");
+    }
+
+    // Helper for the top action buttons
+    private JPanel setupActionButtons(){
+        JPanel actionBtnPanel = new JPanel();
+        JButton btnGet = new JButton("REFRESH");
+        JButton btnShake = new JButton("SHAKE");
+        JButton btnClear = new JButton("CLEAR");
+        //JButton btnGetCoord = new JButton("GET C");  Optional Get Coord button 
+        JButton btnDisconnect = new JButton("DISCONNECT");
         JButton btnPin = new JButton("PIN");
         JButton btnUnpin = new JButton("UNPIN");
-        JButton btnClear = new JButton("CLEAR");
-        JButton btnShake = new JButton("SHAKE");
-        JButton btnDisconnect = new JButton("DISCONNECT");
 
-        // Add action listeners for the buttons
-        btnPost.addActionListener(e -> sendCommand("POST " + xField.getText() + " " +
-                yField.getText() + " " + colorBox.getSelectedItem() + " " + msgField.getText()));
-        btnGet.addActionListener(e -> sendCommand("GET")); // TODO: add parameters
-        btnPin.addActionListener(e -> sendCommand("PIN " + xField.getText() + " " + yField.getText()));
-        btnUnpin.addActionListener(e -> sendCommand("UNPIN " + xField.getText() + " " + yField.getText()));
+        btnGet.addActionListener(e -> sendCommand("GET"));
+       // btnGetCoord.addActionListener(e -> sendCommand("GET " + xField.getText() + " " + yField.getText()));
         btnShake.addActionListener(e -> sendCommand("SHAKE"));
         btnClear.addActionListener(e -> sendCommand("CLEAR"));
-        btnDisconnect.addActionListener(e -> {
+        btnDisconnect.addActionListener(e ->{
             sendCommand("DISCONNECT");
             System.exit(0);
         });
 
-        btnPanel.add(btnPost);
-        btnPanel.add(btnGet);
-        btnPanel.add(btnPin);
-        btnPanel.add(btnUnpin);
-        btnPanel.add(btnClear);
-        btnPanel.add(btnShake);
-        btnPanel.add(btnDisconnect);
+        btnPin.addActionListener(e -> sendCommand("PIN " + xField.getText() + " " + yField.getText()));
+        btnUnpin.addActionListener(e -> sendCommand("UNPIN " + xField.getText() + " " + yField.getText()));
 
-        panel.add(inputPanel);
-        panel.add(btnPanel);
+        actionBtnPanel.add(btnGet);
+       // actionBtnPanel.add(btnGetCoord);
+        actionBtnPanel.add(btnShake);
+        actionBtnPanel.add(btnClear);
+        actionBtnPanel.add(btnDisconnect);
+        actionBtnPanel.add(btnPin);
+        actionBtnPanel.add(btnUnpin);
+        return actionBtnPanel;
+    }
+
+    // Helper for note inputs at the bottom
+    private JPanel setupNoteInputs(String[] colors){
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        xField = new JTextField("0", 3);
+        yField = new JTextField("0", 3);
+        colorBox = new JComboBox<>(colors);
+        msgField = new JTextField("Hello World", 15);
+        JButton btnPost = new JButton("POST");
+
+        btnPost.addActionListener(e -> sendCommand("POST " + xField.getText() + " " +
+                yField.getText() + " " + colorBox.getSelectedItem() + " " + msgField.getText()));
+
+        panel.add(new JLabel("X:"));
+        panel.add(xField);
+        panel.add(new JLabel("Y:"));
+        panel.add(yField);
+        panel.add(new JLabel("Color:"));
+        panel.add(colorBox);
+        panel.add(new JLabel("Message:"));
+        panel.add(msgField);
+        panel.add(btnPost);
         return panel;
     }
+
 
     // Method to send commands to server.
     private void sendCommand(String command){
@@ -137,7 +190,9 @@ public class ClientGUI extends JFrame{
     }
 
     public void handleServerResponse(String response){
-        log("SERVER: " + response);
+        
+        SwingUtilities.invokeLater(() -> {
+            log("SERVER: " + response);
 
         //Parse and draw note..
         if(response.startsWith("OK")){
@@ -165,7 +220,7 @@ public class ClientGUI extends JFrame{
             // Repaint the board
             boardPanel.repaint();
         }
-
+        });
     }
 
     private void log(String s){
@@ -179,25 +234,22 @@ public class ClientGUI extends JFrame{
             Graphics2D g2d = (Graphics2D) g;
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
+            
             Color postitYellow = Color.decode("#FFDE21");
+            Color postitBlue = Color.decode("#a6ccf5");
+            Color postitOrange = Color.decode("#F4B416");
+
 
             for (ClientNote note : notes){
-
                 switch (note.color.toLowerCase()){
-                    case "yellow": g2d.setColor(postitYellow); 
-                        break;
-                    case "red": g2d.setColor(Color.RED); 
-                        break;
-                    case "blue": g2d.setColor(Color.BLUE);
-                        break;
-                    case "green": g2d.setColor(Color.GREEN);
-                        break;
+                    case "yellow": g2d.setColor(postitYellow);  break;
+                    case "orange": g2d.setColor(postitOrange);  break;
+                    case "blue": g2d.setColor(postitBlue); break;
+                    case "green": g2d.setColor(Color.GREEN); break;
                     default: g2d.setColor(Color.WHITE); // Default sticky note color
                 }
 
-                // Set note color
                 g2d.fillRect(note.x, note.y, noteWidth, noteHeight);
-
                 g2d.setColor(Color.BLACK);
                 g2d.drawRect(note.x, note.y, noteWidth, noteHeight);
 
@@ -224,19 +276,16 @@ public class ClientGUI extends JFrame{
                             break;
                         }
                     }
-                    // Draw last line if there is space.
-                    if (y <= note.y + noteHeight - padding){
-                        g2d.drawString(line.toString(), x, y);
-                    }
-                    if (note.isPinned){
-                        g2d.fillOval(note.x + (noteWidth / 2) - 5, note.y + 2, 10, 10);
-                    }
+                }
+                // Draw last line if there is space.
+                if (y <= note.y + noteHeight - padding){
+                    g2d.drawString(line.toString(), x, y);
                 }
 
             //Draw a small pin if the note is pinned (can improve the graphic later)
                 if (note.isPinned){
-                    g.setColor(Color.BLACK);
-                    g.fillOval(note.x + (noteWidth / 2) - 5, note.y + 5, 10, 10);
+                    g2d.setColor(new Color (255, 0, 0, 180)); // Semi-transparent red for pin
+                    g2d.fillOval(note.x + (noteWidth / 2) - 5, note.y + 5, 10, 10);
                 }
             }
         }

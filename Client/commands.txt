@@ -1,0 +1,11 @@
+Refresh classes: cd ../Server; del *.class; javac *.java; cd ../Client; del *.class; javac *.java;
+                 ^ Ensure cd is in Either Client or Server before running
+
+Refresh classes & Run: cd ../Server; del *.class; javac *.java; cd ../Client; del *.class; javac *.java; cd ../Server; java WebServer 1738 800 600 100 80 yellow blue white
+
+
+Delete classes: cd ../Server; del *.class; cd ../Client; del *.class
+
+Start server: cd ../Server; java WebServer 1738 800 600 100 80 red blue white
+
+Start client (in another cmd tab): cd ../Client; java Client
